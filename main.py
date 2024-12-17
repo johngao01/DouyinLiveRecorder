@@ -948,7 +948,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                             if live_status_push and not start_pushed:
                                 if begin_show_push:
-                                    push_content = "直播间状态更新：[直播间名称] 正在直播中，时间：[时间]"
+                                    push_content = f"直播间状态更新：[直播间名称] 正在直播中\n时间：[时间]\n直播间地址：{record_url}"
                                     if begin_push_message_text:
                                         push_content = begin_push_message_text
 
@@ -968,19 +968,19 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                             real_url = port_info.get('record_url')
                             full_path = f'{default_path}/{platform}'
                             if real_url:
-                                now = datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")
+                                now = datetime.datetime.today().strftime("%Y%m%d_%H%M%S")
                                 live_title = port_info.get('title')
                                 title_in_name = ''
                                 if live_title:
                                     live_title = clean_name(live_title)
-                                    title_in_name = live_title + '_' if filename_by_title else ''
+                                    title_in_name = '_' + live_title if filename_by_title else ''
 
                                 try:
                                     if len(video_save_path) > 0:
                                         if not video_save_path.endswith(('/', '\\')):
-                                            full_path = f'{video_save_path}/{platform}'
+                                            full_path = f'{video_save_path}'
                                         else:
-                                            full_path = f'{video_save_path}{platform}'
+                                            full_path = f'{video_save_path}'
 
                                     full_path = full_path.replace("\\", '/')
                                     if folder_by_author:
@@ -1083,7 +1083,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                     only_flv_record = True
 
                                 if video_save_type == "FLV" or only_flv_record:
-                                    filename = anchor_name + f'_{title_in_name}' + now + '.flv'
+                                    filename = anchor_name + f'_' + now + f"{title_in_name}.flv"
                                     save_file_path = f'{full_path}/{filename}'
                                     print(f'{rec_info}/{filename}')
 
@@ -1191,7 +1191,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                             error_window.append(1)
 
                                 elif video_save_type == "MP4":
-                                    filename = anchor_name + f'_{title_in_name}' + now + ".mp4"
+                                    filename = anchor_name + f'_' + now + f"{title_in_name}.mp4"
                                     print(f'{rec_info}/{filename}')
                                     save_file_path = full_path + '/' + filename
 
@@ -1705,14 +1705,6 @@ while True:
         video_save_type = video_save_type.upper()
     else:
         video_save_type = "TS"
-
-    check_path = video_save_path or default_path
-    if utils.check_disk_capacity(check_path, show=first_run) < disk_space_limit:
-        exit_recording = True
-        if not recording:
-            logger.warning(f"Disk space remaining is below {disk_space_limit} GB. "
-                           f"Exiting program due to the disk space limit being reached.")
-            sys.exit(-1)
 
 
     def contains_url(string: str) -> bool:
