@@ -740,7 +740,7 @@ def get_bilibili_room_info(url: str, proxy_addr: OptionalStr = None, cookies: Op
 
 
 @trace_error_decorator
-def get_bilibili_stream_data(url: str, qn: str = '10000', platform: str = 'web', proxy_addr: OptionalStr = None,
+def get_bilibili_stream_data(url: str, qn: str = '30000', platform: str = 'web', proxy_addr: OptionalStr = None,
                              cookies: OptionalStr = None) -> OptionalStr:
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0',
@@ -764,7 +764,7 @@ def get_bilibili_stream_data(url: str, qn: str = '10000', platform: str = 'web',
         for i in json_data['data']['durl']:
             if 'd1--cn-gotcha' in i['url']:
                 return i['url']
-        return json_data['data']['durl'][-1]['url']
+        return json_data['data']['durl'][0]['url']
     else:
         params = {
             "room_id": room_id,
