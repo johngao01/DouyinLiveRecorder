@@ -364,6 +364,8 @@ def clear_record_info(record_name: str, record_url: str) -> None:
 def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, save_type: str,
                      script_command: str | None = None) -> bool:
     save_file_path = ffmpeg_command[-1]
+    start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    logger.info(f"{record_name} {start_time} 直播录制开始")
     process = subprocess.Popen(
         ffmpeg_command, stderr=subprocess.STDOUT, startupinfo=get_startup_info(os_type)
     )
@@ -399,6 +401,7 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
             else:
                 threading.Thread(target=converts_mp4, args=(save_file_path, delete_origin_file)).start()
         print(f"\n{record_name} {stop_time} 直播录制完成\n")
+        logger.info(f"{record_name} {stop_time} 直播录制完成")
 
         if script_command:
             logger.debug("开始执行脚本命令!")
@@ -945,10 +948,10 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                         else:
                             content = f"\r{record_name} 正在直播中..."
                             print(content)
-
+                            real_url = port_info.get('record_url')
                             if live_status_push and not start_pushed:
                                 if begin_show_push:
-                                    push_content = f"直播间状态更新：[直播间名称] 正在直播中\n时间：[时间]\n直播间地址：{record_url}"
+                                    push_content = f"直播间状态更新：[直播间名称] 正在直播中\n时间：[时间]\n直播间地址：{record_url}\n下载地址：{real_url}"
                                     if begin_push_message_text:
                                         push_content = begin_push_message_text
 
@@ -965,7 +968,6 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                 time.sleep(push_check_seconds)
                                 continue
 
-                            real_url = port_info.get('record_url')
                             full_path = f'{default_path}/{platform}'
                             if real_url:
                                 now = datetime.datetime.today().strftime("%Y%m%d_%H%M%S")
