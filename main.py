@@ -35,6 +35,22 @@ from douyinliverecorder import utils
 from msg_push import (
     dingtalk, xizhi, tg_bot, send_email, bark, ntfy
 )
+from moviepy.editor import VideoFileClip
+
+
+def get_video_duration(file_path):
+    """
+    获取视频的时长、分辨率、帧率等信息。
+    """
+    try:
+        video = VideoFileClip(file_path)
+        # 获取时长
+        duration = video.duration  # 秒
+        video.close()  # 释放资源
+        return duration
+    except Exception:
+        return 0
+
 
 version = "v4.0.2"
 platforms = ("\n国内站点：抖音|快手|虎牙|斗鱼|YY|B站|小红书|bigo|blued|网易CC|千度热播|猫耳FM|Look|TwitCasting|百度|微博|"
@@ -364,8 +380,7 @@ def clear_record_info(record_name: str, record_url: str) -> None:
 def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, save_type: str,
                      script_command: str | None = None) -> bool:
     save_file_path = ffmpeg_command[-1]
-    start_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    logger.info(f"{record_name} {start_time} 直播录制开始")
+    start_time = datetime.datetime.now()
     process = subprocess.Popen(
         ffmpeg_command, stderr=subprocess.STDOUT, startupinfo=get_startup_info(os_type)
     )
@@ -389,7 +404,9 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
         time.sleep(1)
 
     return_code = process.returncode
-    stop_time = time.strftime('%Y-%m-%d %H:%M:%S')
+    stop_time = datetime.datetime.now()
+    record_secode = (stop_time-start_time).seconds
+    video_duration = get_video_duration(save_file_path)
     if return_code == 0:
         if converts_to_mp4 and save_type == 'TS':
             if split_video_by_time:
@@ -401,7 +418,7 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
             else:
                 threading.Thread(target=converts_mp4, args=(save_file_path, delete_origin_file)).start()
         print(f"\n{record_name} {stop_time} 直播录制完成\n")
-        logger.info(f"{record_name} {stop_time} 直播录制完成")
+        logger.debug(f"{record_name}直播录制完成，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_secode}秒，视频时间：{video_duration}秒")
 
         if script_command:
             logger.debug("开始执行脚本命令!")
@@ -426,7 +443,8 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
             logger.debug("脚本命令执行结束!")
 
     else:
-        color_obj.print_colored(f"\n{record_name} {stop_time} 直播录制出错,返回码: {return_code}\n", color_obj.RED)
+        logger.debug(f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n")
+        color_obj.print_colored(f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n", color_obj.RED)
 
     recording.discard(record_name)
     return False
