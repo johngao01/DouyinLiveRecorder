@@ -969,7 +969,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                             real_url = port_info.get('record_url')
                             if live_status_push and not start_pushed:
                                 if begin_show_push:
-                                    push_content = f"直播间状态更新：[直播间名称] 正在直播中\n时间：[时间]\n直播间地址：{record_url}\n下载地址：{real_url}"
+                                    push_content = f"直播间状态更新：[直播间名称] 正在直播中\n时间：[时间]\n直播间地址：{record_url}"
                                     if begin_push_message_text:
                                         push_content = begin_push_message_text
 
