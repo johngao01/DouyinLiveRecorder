@@ -418,7 +418,7 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
             else:
                 threading.Thread(target=converts_mp4, args=(save_file_path, delete_origin_file)).start()
         print(f"\n{record_name} {stop_time} 直播录制完成\n")
-        logger.debug(f"{record_name}直播录制完成，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_secode}秒，视频时间：{video_duration}秒")
+        logger.debug(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_secode}秒，视频时间：{video_duration}秒，相差：{record_secode-video_duration}秒")
 
         if script_command:
             logger.debug("开始执行脚本命令!")
@@ -1211,7 +1211,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                             error_window.append(1)
 
                                 elif video_save_type == "MP4":
-                                    filename = anchor_name + f'_' + now + f"{title_in_name}.mp4"
+                                    filename = anchor_name + '_' + now + f"{title_in_name}.mp4"
                                     print(f'{rec_info}/{filename}')
                                     save_file_path = full_path + '/' + filename
 
@@ -1242,7 +1242,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                                         ffmpeg_command.extend(command)
                                         comment_end = check_subprocess(
-                                            record_name,
+                                            anchor_name,
                                             record_url,
                                             ffmpeg_command,
                                             video_save_type,
