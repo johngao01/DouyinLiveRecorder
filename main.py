@@ -1212,6 +1212,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                                 elif video_save_type == "MP4":
                                     filename = anchor_name + '_' + now + f"{title_in_name}.mp4"
+                                    logger.info("line 1215 " + filename)
                                     print(f'{rec_info}/{filename}')
                                     save_file_path = full_path + '/' + filename
 
@@ -1242,7 +1243,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                                         ffmpeg_command.extend(command)
                                         comment_end = check_subprocess(
-                                            anchor_name,
+                                            record_name,
                                             record_url,
                                             ffmpeg_command,
                                             video_save_type,
@@ -1378,6 +1379,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                                     else:
                                         filename = anchor_name + f'_{title_in_name}' + now + ".ts"
+                                        logger.info("line 1382 "+filename)
                                         print(f'{rec_info}/{filename}')
                                         save_file_path = full_path + '/' + filename
 
