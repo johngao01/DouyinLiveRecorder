@@ -106,11 +106,12 @@ def send_email(email_host: str, login_email: str, email_pass: str, sender_email:
         return {"success": [], "error": receivers}
 
 
-def tg_bot(chat_id: int, token: str, content: str) -> Dict[str, Any]:
+def tg_bot(chat_id: int, token: str, content: str, mode='') -> Dict[str, Any]:
     try:
         json_data = {
             "chat_id": chat_id,
-            'text': content
+            'text': content,
+            'parse_mode': mode
         }
         url = f'https://api.telegram.org/bot{token}/sendMessage'
         data = json.dumps(json_data).encode('utf-8')
@@ -118,6 +119,7 @@ def tg_bot(chat_id: int, token: str, content: str) -> Dict[str, Any]:
         response = urllib.request.urlopen(req, timeout=15)
         json_str = response.read().decode('utf-8')
         _json_data = json.loads(json_str)
+        print(_json_data)
         return {"success": [1], "error": []}
     except Exception as e:
         print(f'tg推送失败, 聊天ID：{chat_id}, 错误信息:{e}')

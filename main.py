@@ -8,7 +8,7 @@ Update: 2024-11-30 23:35:00
 Copyright (c) 2023-2024 by Hmily, All Rights Reserved.
 Function: Record live stream video.
 """
-
+from decimal import Decimal, ROUND_DOWN
 import os
 import sys
 import builtins
@@ -36,19 +36,77 @@ from msg_push import (
     dingtalk, xizhi, tg_bot, send_email, bark, ntfy
 )
 from moviepy.editor import VideoFileClip
+import os
+import json
+
+
+def get_video_start_time(filepath):
+    cmd = [
+        'ffprobe',
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_format',
+        filepath
+    ]
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    info = json.loads(result.stdout)
+    start_time = info.get("format", {}).get("start_time")
+
+    if start_time is not None:
+        return '开始于：'+ str(start_time) + '\n'
+    return ''
+
+
+def readable_file_size(path):
+    size = os.path.getsize(path)
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+        if size < 1024:
+            return f"{size:.2f} {unit}"
+        size /= 1024
+    return f"{size:.2f} PB"  # 极端大文件
+
+
+def seconds_to_hms_flexible(seconds):
+    seconds = Decimal(str(seconds))  # 用字符串初始化，防止初始误差
+    hours = int(seconds // 3600)
+    minutes = int((seconds - hours * 3600) // 60)
+    secs = seconds - hours * 3600 - 60 * minutes  # 保留小数部分
+
+    result = ''
+    if hours:
+        result += f"{hours}小时"
+    if minutes:
+        result += f"{minutes}分"
+    if secs:  # 至少保留秒
+        secs = secs.quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+        if secs == secs.to_integral():
+            result += f"{int(secs)}秒"
+        else:
+            s_str = str(secs)
+            a, b = s_str.split('.')
+            if a == '0':
+                result += f"{a}.{b:0<2}秒"
+            else:
+                result += f"{int(a)}.{b:0<2}秒"
+    return result
 
 
 def get_video_duration(file_path):
-    """
-    获取视频的时长、分辨率、帧率等信息。
-    """
     try:
-        video = VideoFileClip(file_path)
-        # 获取时长
-        duration = video.duration  # 秒
-        video.close()  # 释放资源
-        return duration
-    except Exception:
+        cmd = [
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            file_path
+        ]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        duration_str = result.stdout.strip()
+        print(duration_str)
+        return float(duration_str)
+    except Exception as e:
+        print(e)
         return 0
 
 
@@ -405,7 +463,7 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
 
     return_code = process.returncode
     stop_time = datetime.datetime.now()
-    record_secode = (stop_time-start_time).seconds
+    record_second = (stop_time - start_time).seconds
     video_duration = get_video_duration(save_file_path)
     if return_code == 0:
         if converts_to_mp4 and save_type == 'TS':
@@ -418,33 +476,33 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
             else:
                 threading.Thread(target=converts_mp4, args=(save_file_path, delete_origin_file)).start()
         print(f"\n{record_name} {stop_time} 直播录制完成\n")
-        logger.debug(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_secode}秒，视频时间：{video_duration}秒，相差：{record_secode-video_duration}秒")
-
-        if script_command:
-            logger.debug("开始执行脚本命令!")
-            if "python" in script_command:
-                params = [
-                    f'--record_name "{record_name}"',
-                    f'--save_file_path "{save_file_path}"',
-                    f'--save_type {save_type}'
-                    f'--split_video_by_time {split_video_by_time}',
-                    f'--converts_to_mp4 {converts_to_mp4}',
-                ]
-            else:
-                params = [
-                    f'"{record_name.split(" ", maxsplit=1)[-1]}"',
-                    f'"{save_file_path}"',
-                    save_type,
-                    f'split_video_by_time:{split_video_by_time}',
-                    f'converts_to_mp4:{converts_to_mp4}'
-                ]
-            script_command = script_command.strip() + ' ' + ' '.join(params)
-            run_script(script_command)
+        remain = record_second - video_duration
+        with open("/root/record.log", 'a', encoding='utf-8') as f:
+            f.write(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_second:.2f}秒，"
+                    f"视频时间：{video_duration:.2f}秒，相差：{remain:.2f}秒\n")
+        push_msg = (
+            f"<b>{record_name}</b>\n文件名：{save_file_path}\n文件大小：{readable_file_size(save_file_path)}\n"
+            f"直播地址：{record_url}\n{get_video_start_time(save_file_path)}"
+            f"开始时间：{start_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
+            f"结束时间：{stop_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
+            f"录制时长：{record_second:.2f}秒 ——》 {seconds_to_hms_flexible(record_second)}\n"
+            f"视频时间：{video_duration:.2f}秒 ——》 {seconds_to_hms_flexible(video_duration)}\n"
+            f"相差：{remain:.2f}秒 ——》 {seconds_to_hms_flexible(remain)}")
+        print(push_msg)
+        logger.info(push_msg)
+        tg_bot(708424141, "7266246084:AAHZ8D-o3wrR4BmBLELi0FvhIhrQz2AffvY", push_msg, 'HTML')
+        if (record_second - video_duration) / record_second > 0.05:
+            logger.debug("录制时间和视频时间相差5%")
+        else:
+            run_script('ytu')
             logger.debug("脚本命令执行结束!")
 
     else:
-        logger.debug(f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n")
-        color_obj.print_colored(f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n", color_obj.RED)
+        logger.debug(
+            f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n")
+        color_obj.print_colored(
+            f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n",
+            color_obj.RED)
 
     recording.discard(record_name)
     return False
@@ -1097,10 +1155,13 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                             f"{platform} | {anchor_name} | 直播源地址: {port_info['record_url']}")
 
                                 only_flv_record = False
-                                only_flv_platform_list = ['shopee', '花椒直播']
+                                only_flv_platform_list = ['shopee', '花椒直播', '抖音直播', 'B站直播']
                                 if 'live.xhscdn.com' in real_url or platform in only_flv_platform_list:
                                     logger.debug(f"提示: {platform} 将强制使用FLV格式录制")
                                     only_flv_record = True
+                     
+                                if platform in ['斗鱼直播']:
+                                    video_save_type == "MP4"
 
                                 if video_save_type == "FLV" or only_flv_record:
                                     filename = anchor_name + f'_' + now + f"{title_in_name}.flv"
@@ -1117,7 +1178,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                         create_var[subs_thread_name].start()
 
                                     try:
-                                        flv_url = port_info.get('flv_url')
+                                        flv_url = port_info.get('flv_url') or port_info.get('record_url')
                                         if flv_url:
                                             _filepath, _ = urllib.request.urlretrieve(flv_url, save_file_path)
                                             record_finished = True
@@ -1211,7 +1272,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                             error_window.append(1)
 
                                 elif video_save_type == "MP4":
-                                    filename = anchor_name + '_' + now + f"{title_in_name}.mp4"
+                                    filename = anchor_name + '_' + now + f"{title_in_name}.flv"
                                     logger.info("line 1215 " + filename)
                                     print(f'{rec_info}/{filename}')
                                     save_file_path = full_path + '/' + filename
@@ -1226,7 +1287,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                                 "-map", "0",
                                                 "-f", "segment",
                                                 "-segment_time", split_time,
-                                                "-segment_format", "mp4",
+                                                "-segment_format", "flv",
                                                 "-reset_timestamps", "1",
                                                 "-movflags", "+frag_keyframe+empty_moov",
                                                 save_file_path,
@@ -1237,7 +1298,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                                 "-map", "0",
                                                 "-c:v", "copy",
                                                 "-c:a", "copy",
-                                                "-f", "mp4",
+                                                "-f", "flv",
                                                 save_file_path,
                                             ]
 
@@ -1379,7 +1440,6 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
 
                                     else:
                                         filename = anchor_name + f'_{title_in_name}' + now + ".ts"
-                                        logger.info("line 1382 "+filename)
                                         print(f'{rec_info}/{filename}')
                                         save_file_path = full_path + '/' + filename
 

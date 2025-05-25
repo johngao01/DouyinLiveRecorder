@@ -38,6 +38,8 @@ def trace_error_decorator(func: callable) -> callable:
             logger.warning('Failed to execute JS code. Please check if the Node.js environment')
         except Exception as e:
             error_line = traceback.extract_tb(e.__traceback__)[-1].lineno
+            if 'get_bilibili_room_info_h5' in func.__name__:
+                return []
             error_info = f"message: type: {type(e).__name__}, {str(e)} in function {func.__name__} at line: {error_line}"
             logger.error(error_info)
             return []
