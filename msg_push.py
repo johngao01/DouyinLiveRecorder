@@ -119,7 +119,6 @@ def tg_bot(chat_id: int, token: str, content: str, mode='') -> Dict[str, Any]:
         response = urllib.request.urlopen(req, timeout=15)
         json_str = response.read().decode('utf-8')
         _json_data = json.loads(json_str)
-        print(_json_data)
         return {"success": [1], "error": []}
     except Exception as e:
         print(f'tg推送失败, 聊天ID：{chat_id}, 错误信息:{e}')

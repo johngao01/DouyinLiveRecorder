@@ -91,6 +91,30 @@ def seconds_to_hms_flexible(seconds):
                 result += f"{int(a)}.{b:0<2}秒"
     return result
 
+def record_info(record_name, record_url, start_time, end_time, save_file_path):
+    record_second = (stop_time - start_time).seconds
+    video_duration = get_video_duration(save_file_path)
+    print(f"\n{record_name} {stop_time} 直播录制完成\n")
+    remain = record_second - video_duration
+    with open("/root/record.log", 'a', encoding='utf-8') as f:
+        f.write(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_second:.2f}秒，"
+                f"视频时间：{video_duration:.2f}秒，相差：{remain:.2f}秒\n")
+    push_msg = (
+        f"<b>{record_name}</b>\n文件名：{save_file_path}\n文件大小：{readable_file_size(save_file_path)}\n"
+        f"直播地址：{record_url}\n{get_video_start_time(save_file_path)}"
+        f"开始时间：{start_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
+        f"结束时间：{stop_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
+        f"录制时长：{record_second:.2f}秒 ——》 {seconds_to_hms_flexible(record_second)}\n"
+        f"视频时间：{video_duration:.2f}秒 ——》 {seconds_to_hms_flexible(video_duration)}\n"
+        f"相差：{remain:.2f}秒 ——》 {seconds_to_hms_flexible(remain)}")
+    print(push_msg)
+    logger.info(push_msg)
+    tg_bot(708424141, "7266246084:AAHZ8D-o3wrR4BmBLELi0FvhIhrQz2AffvY", push_msg, 'HTML')
+    if (record_second - video_duration) / record_second > 0.05:
+        logger.debug("录制时间和视频时间相差5%")
+    else:
+        run_script('ytu')
+        logger.debug("脚本命令执行结束!")
 
 def get_video_duration(file_path):
     try:
@@ -463,8 +487,6 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
 
     return_code = process.returncode
     stop_time = datetime.datetime.now()
-    record_second = (stop_time - start_time).seconds
-    video_duration = get_video_duration(save_file_path)
     if return_code == 0:
         if converts_to_mp4 and save_type == 'TS':
             if split_video_by_time:
@@ -475,28 +497,7 @@ def check_subprocess(record_name: str, record_url: str, ffmpeg_command: list, sa
                         threading.Thread(target=converts_mp4, args=(path, delete_origin_file)).start()
             else:
                 threading.Thread(target=converts_mp4, args=(save_file_path, delete_origin_file)).start()
-        print(f"\n{record_name} {stop_time} 直播录制完成\n")
-        remain = record_second - video_duration
-        with open("/root/record.log", 'a', encoding='utf-8') as f:
-            f.write(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_second:.2f}秒，"
-                    f"视频时间：{video_duration:.2f}秒，相差：{remain:.2f}秒\n")
-        push_msg = (
-            f"<b>{record_name}</b>\n文件名：{save_file_path}\n文件大小：{readable_file_size(save_file_path)}\n"
-            f"直播地址：{record_url}\n{get_video_start_time(save_file_path)}"
-            f"开始时间：{start_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
-            f"结束时间：{stop_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
-            f"录制时长：{record_second:.2f}秒 ——》 {seconds_to_hms_flexible(record_second)}\n"
-            f"视频时间：{video_duration:.2f}秒 ——》 {seconds_to_hms_flexible(video_duration)}\n"
-            f"相差：{remain:.2f}秒 ——》 {seconds_to_hms_flexible(remain)}")
-        print(push_msg)
-        logger.info(push_msg)
-        tg_bot(708424141, "7266246084:AAHZ8D-o3wrR4BmBLELi0FvhIhrQz2AffvY", push_msg, 'HTML')
-        if (record_second - video_duration) / record_second > 0.05:
-            logger.debug("录制时间和视频时间相差5%")
-        else:
-            run_script('ytu')
-            logger.debug("脚本命令执行结束!")
-
+        record_info(record_name, record_url, start_time, stop_time, save_file_path)
     else:
         logger.debug(
             f"\n{record_name},开始时间：{start_time}, 结束时间：{stop_time}，直播录制出错,返回码: {return_code}\n")
@@ -1155,7 +1156,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                             f"{platform} | {anchor_name} | 直播源地址: {port_info['record_url']}")
 
                                 only_flv_record = False
-                                only_flv_platform_list = ['shopee', '花椒直播', '抖音直播', 'B站直播']
+                                only_flv_platform_list = ['shopee', '花椒直播', '抖音直播']
                                 if 'live.xhscdn.com' in real_url or platform in only_flv_platform_list:
                                     logger.debug(f"提示: {platform} 将强制使用FLV格式录制")
                                     only_flv_record = True
@@ -1180,7 +1181,10 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                     try:
                                         flv_url = port_info.get('flv_url') or port_info.get('record_url')
                                         if flv_url:
+                                            start_time = datetime.datetime.now()
                                             _filepath, _ = urllib.request.urlretrieve(flv_url, save_file_path)
+                                            stop_time = datetime.datetime.now()
+                                            record_info(record_name, record_url, start_time, stop_time, save_file_path)
                                             record_finished = True
                                             recording.discard(record_name)
                                             print(
