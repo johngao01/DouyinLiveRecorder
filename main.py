@@ -91,7 +91,7 @@ def seconds_to_hms_flexible(seconds):
                 result += f"{int(a)}.{b:0<2}秒"
     return result
 
-def record_info(record_name, record_url, start_time, end_time, save_file_path):
+def record_info(record_name, record_url, start_time, stop_time, save_file_path):
     record_second = (stop_time - start_time).seconds
     video_duration = get_video_duration(save_file_path)
     print(f"\n{record_name} {stop_time} 直播录制完成\n")
