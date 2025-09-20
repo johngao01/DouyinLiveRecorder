@@ -54,8 +54,8 @@ def get_video_start_time(filepath):
     start_time = info.get("format", {}).get("start_time")
 
     if start_time is not None:
-        return '开始于：'+ str(start_time) + '\n'
-    return ''
+        return start_time
+    return 0
 
 
 def readable_file_size(path):
@@ -95,13 +95,16 @@ def record_info(record_name, record_url, start_time, stop_time, save_file_path):
     record_second = (stop_time - start_time).seconds
     video_duration = get_video_duration(save_file_path)
     print(f"\n{record_name} {stop_time} 直播录制完成\n")
+    start_at = get_video_start_time(save_file_path)
+    video_duration = video_duration - start_at
     remain = record_second - video_duration
     with open("/root/record.log", 'a', encoding='utf-8') as f:
         f.write(f"{record_name}，开始时间：{start_time}, 结束时间：{stop_time}，录制时间：{record_second:.2f}秒，"
                 f"视频时间：{video_duration:.2f}秒，相差：{remain:.2f}秒\n")
     push_msg = (
         f"<b>{record_name}</b>\n文件名：{save_file_path}\n文件大小：{readable_file_size(save_file_path)}\n"
-        f"直播地址：{record_url}\n{get_video_start_time(save_file_path)}"
+        f"直播地址：{record_url}\n"
+        f"开始于：{str(start_at)}\n"
         f"开始时间：{start_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
         f"结束时间：{stop_time.strftime("%Y-%m-%d %H:%M:%S")}\n"
         f"录制时长：{record_second:.2f}秒 ——》 {seconds_to_hms_flexible(record_second)}\n"
