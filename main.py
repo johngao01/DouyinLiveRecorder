@@ -41,21 +41,24 @@ import json
 
 
 def get_video_start_time(filepath):
-    cmd = [
-        'ffprobe',
-        '-v', 'quiet',
-        '-print_format', 'json',
-        '-show_format',
-        filepath
-    ]
+    try:
+        cmd = [
+            'ffprobe',
+            '-v', 'quiet',
+            '-print_format', 'json',
+            '-show_format',
+            filepath
+        ]
 
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    info = json.loads(result.stdout)
-    start_time = info.get("format", {}).get("start_time")
-
-    if start_time is not None:
-        return start_time
-    return 0
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        info = json.loads(result.stdout)
+        start_time = info.get("format", {}).get("start_time")
+        
+        if start_time is not None:
+            return float(start_time)
+    except Exception as e:
+        print(e)
+        return 0
 
 
 def readable_file_size(path):
