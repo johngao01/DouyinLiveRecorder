@@ -35,7 +35,6 @@ from douyinliverecorder import utils
 from msg_push import (
     dingtalk, xizhi, tg_bot, send_email, bark, ntfy
 )
-from moviepy.editor import VideoFileClip
 import os
 import json
 
@@ -53,7 +52,7 @@ def get_video_start_time(filepath):
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         info = json.loads(result.stdout)
         start_time = info.get("format", {}).get("start_time")
-        
+
         if start_time is not None:
             return float(start_time)
     except Exception as e:
@@ -94,6 +93,7 @@ def seconds_to_hms_flexible(seconds):
                 result += f"{int(a)}.{b:0<2}秒"
     return result
 
+
 def record_info(record_name, record_url, start_time, stop_time, save_file_path):
     record_second = (stop_time - start_time).seconds
     video_duration = get_video_duration(save_file_path)
@@ -121,6 +121,7 @@ def record_info(record_name, record_url, start_time, stop_time, save_file_path):
     else:
         run_script('ytu')
         logger.debug("脚本命令执行结束!")
+
 
 def get_video_duration(file_path):
     try:
@@ -1166,7 +1167,7 @@ def start_record(url_data: tuple, count_variable: int = -1) -> None:
                                 if 'live.xhscdn.com' in real_url or platform in only_flv_platform_list:
                                     logger.debug(f"提示: {platform} 将强制使用FLV格式录制")
                                     only_flv_record = True
-                     
+
                                 if platform in ['斗鱼直播']:
                                     video_save_type == "MP4"
 
